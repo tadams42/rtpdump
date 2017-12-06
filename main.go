@@ -250,6 +250,92 @@ func codecsList(c *cli.Context) error {
 	return nil
 }
 
+var dumpAllAmrCmd = func(c *cli.Context) error {
+
+	loadKeyFile(c)
+
+	inputFile := c.Args().First()
+	if inputFile == "" {
+		cli.ShowCommandHelp(c, "dump_all_amr")
+		return cli.NewExitError("No input pcap given!", 1)
+	}
+
+	outputPath := c.String("output-path")
+	if outputPath == "" {
+		cli.ShowCommandHelp(c, "dump_all_amr")
+		return cli.NewExitError("No output path given!", 1)
+	}
+
+	streamIndex := c.Int("stream-index")
+	if streamIndex < 0 {
+		cli.ShowCommandHelp(c, "dump_all_amr")
+		return cli.NewExitError("You must speciffy stream index!", 1)
+	}
+
+	wideband := c.Bool("wideband")
+	octetAligned := c.Bool("octet-aligned")
+
+	rtpReader, err := rtp.NewRtpReader(inputFile)
+	if err != nil {
+		return cli.NewMultiError(cli.NewExitError("failed to open file", 1), err)
+	}
+	defer rtpReader.Close()
+
+	rtpStreams := rtpReader.GetStreams()
+	if len(rtpStreams) <= 0 {
+		return cli.NewExitError("No streams found!", 1)
+	}
+	if streamIndex >= len(rtpStreams) {
+		return cli.NewExitError("No stream with such index!", 1)
+	}
+
+	stream := rtpStreams[streamIndex]
+	// fmt.Println(stream)
+
+	codecMetadata := codecs.CodecList[0]
+	for i := range codecs.CodecList {
+		if codecs.CodecList[i].Name == "amr" {
+			codecMetadata = codecs.CodecList[i]
+		}
+	}
+	// fmt.Println(codecMetadata)
+
+	optionsMap := make(map[string]string)
+	if wideband {
+		optionsMap["sample-rate"] = "wb"
+	} else {
+		optionsMap["sample-rate"] = "nb"
+	}
+	if octetAligned {
+		optionsMap["octet-aligned"] = "1"
+	} else {
+		optionsMap["octet-aligned"] = "0"
+	}
+	// fmt.Println(optionsMap)
+
+	codec := codecMetadata.Init()
+	err = codec.SetOptions(optionsMap)
+	if err != nil {
+		return err
+	}
+
+	codec.Init()
+	// fmt.Println(codec)
+
+	f, err := os.Create(outputPath)
+	defer f.Close()
+	f.Write(codec.GetFormatMagic())
+	for _, r := range stream.RtpPackets {
+		frames, err := codec.HandleRtpPacket(r)
+		if err == nil {
+			f.Write(frames)
+		}
+	}
+	f.Sync()
+
+	return nil
+}
+
 func main() {
 
 	log.SetLevel(log.INFO)
@@ -287,6 +373,19 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{Name: "host", Value: "localhost", Usage: "destination host for replayed RTP packets"},
 				cli.IntFlag{Name: "port", Value: 1234, Usage: "destination port for replayed RTP packets"},
+			},
+		},
+		{
+			Name:      "dump_all_amr",
+			Aliases:   []string{"a"},
+			Usage:     "dumps all streams from pcap file, assuming AMR/AMR-WB codec",
+			ArgsUsage: "[pcap-file]",
+			Action:    dumpAllAmrCmd,
+			Flags: []cli.Flag{
+				cli.IntFlag{Name: "stream-index, s", Value: -1, Usage: "Index of stream (zero based) that will be dumped. Use 'streams' to list them"},
+				cli.BoolFlag{Name: "wideband, w", Usage: "Is AMR-WB wideband? Omitting this flag means it is narrowband"},
+				cli.BoolFlag{Name: "octet-aligned, a", Usage: "Is AMR octet-aligned? Omitting this flag means it is bandwidth-efficient"},
+				cli.StringFlag{Name: "output-path, o", Usage: "Path to output file."},
 			},
 		},
 		{
