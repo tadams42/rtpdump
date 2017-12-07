@@ -256,19 +256,19 @@ var dumpAllAmrCmd = func(c *cli.Context) error {
 
 	inputFile := c.Args().First()
 	if inputFile == "" {
-		cli.ShowCommandHelp(c, "dump_all_amr")
+		cli.ShowCommandHelp(c, "dump_amr")
 		return cli.NewExitError("No input pcap given!", 1)
 	}
 
 	outputPath := c.String("output-path")
 	if outputPath == "" {
-		cli.ShowCommandHelp(c, "dump_all_amr")
+		cli.ShowCommandHelp(c, "dump_amr")
 		return cli.NewExitError("No output path given!", 1)
 	}
 
 	streamIndex := c.Int("stream-index")
 	if streamIndex < 0 {
-		cli.ShowCommandHelp(c, "dump_all_amr")
+		cli.ShowCommandHelp(c, "dump_amr")
 		return cli.NewExitError("You must speciffy stream index!", 1)
 	}
 
@@ -376,7 +376,7 @@ func main() {
 			},
 		},
 		{
-			Name:      "dump_all_amr",
+			Name:      "dump_amr",
 			Aliases:   []string{"a"},
 			Usage:     "dumps all streams from pcap file, assuming AMR/AMR-WB codec",
 			ArgsUsage: "[pcap-file]",
