@@ -104,7 +104,7 @@ func (amr *Amr) HandleRtpPacket(packet *rtp.RtpPacket) (result []byte, err error
 
 func (amr *Amr) handleMissingSamples(timestamp uint32) (result []byte) {
 	if amr.timestamp != 0 {
-		lostSamplesFromPrevious := ((timestamp - amr.timestamp) / (uint32(amr.sampleRate) / 50)) - 1
+		lostSamplesFromPrevious := ((timestamp - amr.timestamp) / (8000 / 50)) - 1
 		log.Sdebug("lostSamplesFromPrevious: %d, time: %d", lostSamplesFromPrevious, lostSamplesFromPrevious*20)
 		for i := lostSamplesFromPrevious; i > 0; i-- {
 			if amr.isWideBand() {
