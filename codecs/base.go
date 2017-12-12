@@ -2,7 +2,7 @@ package codecs
 
 import (
   "fmt"
-  "github.com/hdiniz/rtpdump/rtp"
+  "github.com/tadams42/rtpdump/rtp"
 )
 
 type Codec interface {

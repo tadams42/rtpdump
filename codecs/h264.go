@@ -1,8 +1,8 @@
 package codecs
 import (
   "errors"
-  "github.com/hdiniz/rtpdump/log"
-  "github.com/hdiniz/rtpdump/rtp"
+  "github.com/tadams42/rtpdump/log"
+  "github.com/tadams42/rtpdump/rtp"
 )
 
 

@@ -3,7 +3,7 @@ package rtp
 import (
     "fmt"
     "time"
-    "github.com/hdiniz/rtpdump/util"
+    "github.com/tadams42/rtpdump/util"
 )
 
 type RtpStream struct {

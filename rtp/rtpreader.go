@@ -8,8 +8,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"github.com/hdiniz/rtpdump/esp"
-	"github.com/hdiniz/rtpdump/log"
+	"github.com/tadams42/rtpdump/esp"
+	"github.com/tadams42/rtpdump/log"
 )
 
 // RtpReader reads
