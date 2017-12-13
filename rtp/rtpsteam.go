@@ -26,6 +26,7 @@ type RtpStream struct {
     LostPackets uint
     MeanJitter float32
     MeanBandwidth float32
+	OverflownPackets uint
 
     RtpPackets []*RtpPacket
 }
@@ -44,16 +45,50 @@ func (r RtpStream) String() string {
   )
 }
 
+
+//maybe check RTP timestamps as well???
 func (r *RtpStream) AddPacket(rtp *RtpPacket) {
+	
+    if rtp.SequenceNumber > r.CurSeq {
 
-    if rtp.SequenceNumber <= r.CurSeq {
-        return
-    }
+//		fmt.Printf("%v", rtp.SequenceNumber)
+//		fmt.Printf(" ")
+//		fmt.Println(r.CurSeq)
 
-    r.EndTime = rtp.ReceivedAt
-    r.CurSeq = rtp.SequenceNumber
-    r.TotalExpectedPackets = uint(r.CurSeq - r.FirstSeq)
-    r.LostPackets = r.TotalExpectedPackets - uint(len(r.RtpPackets))
+		r.EndTime = rtp.ReceivedAt
+		r.CurSeq = rtp.SequenceNumber
+		r.TotalExpectedPackets = uint(r.CurSeq - r.FirstSeq) + r.OverflownPackets
+		r.LostPackets = r.TotalExpectedPackets - uint(len(r.RtpPackets))
 
-    r.RtpPackets = append(r.RtpPackets, rtp)
+		r.RtpPackets = append(r.RtpPackets, rtp)
+		
+    } else if rtp.SequenceNumber < r.CurSeq {
+		//fmt.Printf("%v", rtp.SequenceNumber)
+		//fmt.Printf(" ")
+		//fmt.Println(r.CurSeq)	
+		if rtp.SequenceNumber < 200 && r.CurSeq > 65300 {
+				//fmt.Printf("ulazim")
+				r.EndTime = rtp.ReceivedAt
+				r.TotalExpectedPackets = uint(r.CurSeq - r.FirstSeq)
+				var until64k uint = uint(65535 - r.CurSeq)
+				var fromZero uint= uint(rtp.SequenceNumber)
+				r.FirstSeq = rtp.SequenceNumber
+				r.CurSeq = rtp.SequenceNumber
+				
+				
+				r.OverflownPackets = r.OverflownPackets + r.TotalExpectedPackets + until64k + fromZero
+				r.TotalExpectedPackets = r.OverflownPackets 
+				r.LostPackets = r.TotalExpectedPackets - uint(len(r.RtpPackets))
+				
+				r.RtpPackets = append(r.RtpPackets, rtp)
+				
+		}
+	} else if rtp.SequenceNumber == r.CurSeq {
+		return 
+	}
+	
+	
 }
+
+
+

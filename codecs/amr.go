@@ -2,7 +2,6 @@ package codecs
 
 import (
 	"errors"
-
 	"github.com/tadams42/rtpdump/log"
 	"github.com/tadams42/rtpdump/rtp"
 )
@@ -77,29 +76,55 @@ func (amr *Amr) SetOptions(options map[string]string) error {
 	return nil
 }
 
+//maybe check RTP timestamps as well???
 func (amr *Amr) HandleRtpPacket(packet *rtp.RtpPacket) (result []byte, err error) {
 	if !amr.configured {
 		return nil, amr.invalidState()
 	}
+	if packet.SequenceNumber == 65535 {
+		//fmt.Println("65535")	
+	}
+	
+		//fmt.Println(amr.lastSeq)	
+	
+	if packet.SequenceNumber > amr.lastSeq {
+		//fmt.Printf("normalni")
+		result = append(result, amr.handleMissingSamples(packet.Timestamp)...)
 
-	if packet.SequenceNumber <= amr.lastSeq {
+		var speechFrame []byte
+		if amr.octetAligned {
+			speechFrame, err = amr.handleOaMode(packet.Timestamp, packet.Payload)
+		} else {
+			speechFrame, err = amr.handleBeMode(packet.Timestamp, packet.Payload)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, speechFrame...)
+		return result, nil
+	}else if (packet.SequenceNumber < amr.lastSeq) && ((packet.SequenceNumber < 200) && (amr.lastSeq > 65300)) {
+		//fmt.Println("nenormalni")
+		result = append(result, amr.handleMissingSamples(packet.Timestamp)...)
+
+		var speechFrame []byte
+		if amr.octetAligned {
+			speechFrame, err = amr.handleOaMode(packet.Timestamp, packet.Payload)
+		} else {
+			speechFrame, err = amr.handleBeMode(packet.Timestamp, packet.Payload)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, speechFrame...)
+		return result, nil
+	}else if packet.SequenceNumber == amr.lastSeq {
 		return nil, errors.New("Ignore out of sequence")
 	}
-
-	result = append(result, amr.handleMissingSamples(packet.Timestamp)...)
-
-	var speechFrame []byte
-	if amr.octetAligned {
-		speechFrame, err = amr.handleOaMode(packet.Timestamp, packet.Payload)
-	} else {
-		speechFrame, err = amr.handleBeMode(packet.Timestamp, packet.Payload)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	result = append(result, speechFrame...)
-	return result, nil
+	
+	return nil, errors.New("Unexpected error")
+	
 }
 
 func (amr *Amr) handleMissingSamples(timestamp uint32) (result []byte) {
