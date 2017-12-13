@@ -342,7 +342,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "rtpdump"
-	app.Version = "0.9.1"
+	app.Version = "0.9.0.fork.1"
 	cli.AppHelpTemplate += `
      /\_/\
     ( o.o )
